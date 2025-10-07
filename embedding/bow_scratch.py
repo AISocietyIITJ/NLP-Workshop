@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Set
 
 sentences = [
     "it was the best of times",
@@ -10,35 +10,35 @@ sentences = [
 # Tokenize each sentence into a list of words
 tokenized_sentences = [sentence.split(sep=' ') for sentence in sentences]
 
-wordFreq: Dict[str, int] = {}
+vocabulary: Set[str] = set()
 
 for tok_sentence in tokenized_sentences:
     for tok in tok_sentence:
-        if (tok not in wordFreq):
-            wordFreq[tok] = 1  # add word to vocabulary
-        else:
-            wordFreq[tok] += 1  # increment frequency by 1
+        vocabulary.add(tok)
+
+# ordered list
+vocab_list = list(vocabulary)
 
 # Binary BOW
 bowBinary = []
 for tok_sentence in tokenized_sentences:
     sentenceVec = []  # Binary BOW Vector
-    for word in wordFreq:
+    for word in vocab_list:
         if word in tok_sentence:
             sentenceVec.append(1)
         else:
             sentenceVec.append(0)
     bowBinary.append(sentenceVec)
 
-print(bowBinary)
+print("Vocabulary:", vocab_list)
+print("Binary BOW:", bowBinary)
 
 # Word Freq BOW
 bowCount = []
 for tok_sentence in tokenized_sentences:
     sentenceVec = []
-    for word in wordFreq:
+    for word in vocab_list:
         sentenceVec.append(tok_sentence.count(word))
-
     bowCount.append(sentenceVec)
 
-print(bowCount)
+print("Count BOW:", bowCount)
