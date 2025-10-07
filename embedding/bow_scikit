@@ -1,0 +1,32 @@
+from sklearn.feature_extraction.text import CountVectorizer
+import numpy as np
+
+sentences = [
+    "it was the best of times",
+    "it it was the worst of times",
+    "it was the age of wisdom wisdom wisdom",
+    "it was the age of of foolishness"
+]
+
+# Binary BOW
+binary_vectorizer = CountVectorizer(binary=True)
+bow_binary_sklearn = binary_vectorizer.fit_transform(sentences)
+
+# Get vocabulary
+feature_names = binary_vectorizer.get_feature_names_out()
+print("Vocabulary:", feature_names)
+
+print("Binary BOW matrix:")
+print(bow_binary_sklearn.toarray())  # type: ignore
+
+# Word Freq BOW
+count_vectorizer = CountVectorizer()
+bow_count_sklearn = count_vectorizer.fit_transform(sentences)
+
+print("Count BOW matrix:")
+print(bow_count_sklearn.toarray())  # type: ignore
+
+# Show vocabulary mapping
+print("\nVocabulary indices:")
+for word, idx in count_vectorizer.vocabulary_.items():
+    print(f"'{word}': {idx}")
