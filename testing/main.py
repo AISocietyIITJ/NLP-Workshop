@@ -3,107 +3,36 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from yellowbrick.text import TSNEVisualizer
 import numpy as np
 from sklearn.manifold import TSNE
-import xgboost as xgb
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import classification_report
 from sklearn.decomposition import TruncatedSVD
 import plotly.express as px
 # from tiktoken import 
+import scipy as sp
 import tiktoken
 import json
 from tqdm import tqdm
-import plotly.graph_objects as go
+import pandas as pd
+import pickle
 
 
-# dataset = load_dataset('Ishat/SentimentAnalysisRAID', split='train')
+dataset = load_dataset('gjyotin305/NLPWorkshop', split='train')
+dataset.to_json('dataset.json', lines=True, force_ascii=False)
 
-# dataset.to_json('dataset.json', lines=False)
 
-
-with open("dataset.json", "r") as f:
+with open("dataset.json", "r", encoding="utf-8") as f:
     data = [json.loads(line) for line in f]
-len(data)
+
+print(len(data))
 
 # enc = tiktoken.get_encoding("o200k_base")
 # assert enc.decode(enc.encode("hello world")) == "hello world"
 
 # To get the tokeniser corresponding to a specific model in the OpenAI API:
-enc = tiktoken.encoding_for_model("gpt-4o")
-test_sample = "Yolo"
+# enc = tiktoken.encoding_for_model("gpt-4o")
+# test_sample = "Yolo"
 
-check = enc.encode(test_sample)
-print(enc.decode([check[1]]))
+# check = enc.encode(test_sample)
+# print(enc.decode([check[1]]))
 # tests = enc.encode_batch([test_sample, test_sample])
-
-
-def visualize_decision_boundary_3d(model, X, y, title="3D Decision Boundary"):
-    # Step 1: Dimensionality reduction
-    svd = TruncatedSVD(n_components=50, random_state=42)
-    X_reduced = svd.fit_transform(X)
-
-    tsne = TSNE(n_components=3, random_state=42, perplexity=30, init='pca')
-    X_3d = tsne.fit_transform(X_reduced)
-
-    # Step 2: Train classifier on 3D features
-    model.fit(X_3d, y)
-
-    # Step 3: Build grid for visualization
-    x_min, x_max = X_3d[:, 0].min() - 5, X_3d[:, 0].max() + 5
-    y_min, y_max = X_3d[:, 1].min() - 5, X_3d[:, 1].max() + 5
-    z_min, z_max = X_3d[:, 2].min() - 5, X_3d[:, 2].max() + 5
-
-    # Keep grid coarse to avoid huge computation
-    grid_size = 25
-    x_range = np.linspace(x_min, x_max, grid_size)
-    y_range = np.linspace(y_min, y_max, grid_size)
-    z_range = np.linspace(z_min, z_max, grid_size)
-    xx, yy, zz = np.meshgrid(x_range, y_range, z_range)
-
-    grid_points = np.c_[xx.ravel(), yy.ravel(), zz.ravel()]
-    preds = model.predict(grid_points)
-
-    # Step 4: Prepare Plotly traces
-    scatter_train = go.Scatter3d(
-        x=X_3d[:, 0],
-        y=X_3d[:, 1],
-        z=X_3d[:, 2],
-        mode='markers',
-        marker=dict(
-            size=5,
-            color=y,
-            colorscale=['red', 'green'],
-            opacity=0.8
-        ),
-        name='Training points'
-    )
-
-    scatter_pred = go.Scatter3d(
-        x=grid_points[:, 0],
-        y=grid_points[:, 1],
-        z=grid_points[:, 2],
-        mode='markers',
-        marker=dict(
-            size=2,
-            color=preds,
-            colorscale=['rgba(255,0,0,0.2)', 'rgba(0,255,0,0.2)'],
-            opacity=0.2
-        ),
-        name='Decision region'
-    )
-
-    fig = go.Figure(data=[scatter_pred, scatter_train])
-    fig.update_layout(
-        title=title,
-        scene=dict(
-            xaxis_title='t-SNE Component 1',
-            yaxis_title='t-SNE Component 2',
-            zaxis_title='t-SNE Component 3'
-        ),
-        showlegend=True,
-        width=900,
-        height=700
-    )
-    fig.show()
 
 
 # print(enc.special_tokens_set)
@@ -129,7 +58,7 @@ def check_max_len_encodings(dataset):
         min_tokens = min(len(x['tokens']), min_tokens)
         if len(x['tokens']) > 20 and len(x['tokens']) < 40:
             num_of_tokens += 1
-            filter_json.append(x)
+            filter_json.append(x)   
 
     with open('filter_encodes.json', 'w') as f:
         json.dump(filter_json, f, indent=4)
@@ -163,7 +92,7 @@ def check_max_len_encodings(dataset):
 def pad_encodings():
     with open('filter_encodes.json', 'r') as f:
         data_filter = json.load(f)
-
+ 
     max_tokens = 39
     token = enc.encode('<|endoftext|>', allowed_special='all')[0]
 
@@ -192,32 +121,20 @@ def dummy(text):
 
 
 def make_embeddings():
-    with open('filter_encoded_padded_text.json', 'r') as f:
-        check = json.load(f)
+    # with open('filter_encoded_padded_text.json', 'r') as f:
+    #     check = json.load(f)
+    check = data
 
     sentiment_to_idx = {
         'Positive': 1,
         'Negative': 0
     }
-
-    train_samples = 2700
-    test_samples = 1000
-
-    list_train_text = []
-    list_train_labels = []
-    list_train_labels_idx = []
-    for x in tqdm(check[:train_samples]):
-        list_train_text.append(x['text_tokens'])
-        list_train_labels.append(x['sentiment'])
-        list_train_labels_idx.append(sentiment_to_idx[x['sentiment']])
-
-    list_test_text = []
-    list_test_labels = []
-    list_test_labels_idx = []
-    for x in tqdm(check[train_samples:train_samples+test_samples]):
-        list_test_text.append(x['text_tokens'])
-        list_test_labels.append(x['sentiment'])
-        list_test_labels_idx.append(sentiment_to_idx[x['sentiment']])
+    
+    list_text = []
+    list_labels = []
+    for x in tqdm(check):
+        list_text.append(x['text_tokens'])
+        list_labels.append(sentiment_to_idx[x['sentiment']])
 
     vectorizer = TfidfVectorizer(
         ngram_range=(3, 5),
@@ -226,51 +143,72 @@ def make_embeddings():
         analyzer='word',
         tokenizer=dummy,
         preprocessor=dummy,
-        token_pattern=None, strip_accents='unicode')
+        token_pattern=None,
+        strip_accents='unicode')
 
-    tf_train = vectorizer.fit_transform(list_train_text)
-    tf_test = vectorizer.transform(list_test_text)
-
+    tf_train = vectorizer.fit_transform(list_text)
+    labels = np.array(list_labels)
     print(tf_train.shape)
+    print(labels.shape)
 
-    rf = RandomForestClassifier()
-    rf.fit(tf_train, list_train_labels_idx)
+    sp.sparse.save_npz('/tmp/sparse_matrix.npz', tf_train)
+    sp.sparse.save_npz('/tmp/labels.npz', sp.sparse.csr_matrix(labels))
+    sparse_matrix = sp.sparse.load_npz('/tmp/sparse_matrix.npz')
+    print(sparse_matrix.shape)
+    labels = sp.sparse.load_npz('/tmp/labels.npz').toarray().ravel()
+    print(labels[0])
 
-    y_pred = rf.predict(tf_test)
-    print(classification_report(list_test_labels_idx, y_pred))
+    # # Required libraries
 
-    svd = TruncatedSVD(n_components=50, random_state=42)
-    X_reduced = svd.fit_transform(tf_train)  # (n_docs, 50)
+    # # Example documents
+    # docs = [
+    #     "this is the first document",
+    #     "this document is the second document",
+    #     "and this is the third one",
+    #     "is this the first document",
+    #     "another example text for testing t-sne in 3d",
+    #     "more documents to see clustering"
+    # ]
 
-    # 3. Run t-SNE to get 3D embeddings
-    tsne = TSNE(n_components=3, random_state=42, perplexity=5, init='pca')
-    X_tsne3d = tsne.fit_transform(X_reduced)  # (n_docs, 3)
+    # # 1. Compute TF-IDF
+    # tfidf = TfidfVectorizer(stop_words='english', max_features=1000)  # limit vocab
+    # X_sparse = tfidf.fit_transform(docs)  # shape: (n_docs, n_terms)
 
-    # 4. Plot with Plotly
-    # You could have labels or categories for color, here just index
-    labels = list(range(len(list_train_labels)))
+    # 2. (Optional) Reduce dimensionality before t-SNE (helps performance)
+    # svd = TruncatedSVD(n_components=50, random_state=42)
+    # X_reduced = svd.fit_transform(tf_train)  # (n_docs, 50)
 
-    fig = px.scatter_3d(
-        x=X_tsne3d[:, 0],
-        y=X_tsne3d[:, 1],
-        z=X_tsne3d[:, 2],
-        color=labels,
-        hover_name=list_train_labels,
-        title="3D t-SNE of TF-IDF Vectors"
-    )
-    fig.update_traces(marker=dict(size=5))
-    fig.show()
+    # # 3. Run t-SNE to get 3D embeddings
+    # tsne = TSNE(n_components=3, random_state=42, perplexity=5, init='pca')
+    # X_tsne3d = tsne.fit_transform(X_reduced)  # (n_docs, 3)
+
+    # # 4. Plot with Plotly
+    # # You could have labels or categories for color, here just index
+    # labels = list(range(len(list_labels)))
+
+    # fig = px.scatter_3d(
+    #     x=X_tsne3d[:,0],
+    #     y=X_tsne3d[:,1],
+    #     z=X_tsne3d[:,2],
+    #     color=labels,
+    #     hover_name=list_labels,
+    #     title="3D t-SNE of TF-IDF Vectors"
+    # )
+    # fig.update_traces(marker=dict(size=5))
+    # fig.show()
 
 
+    # tsne.fit(tf_train, list_labels)
+    # tsne.show()
+# encode_tokens(data)
+# check_max_len_encodings(data)
+# pad_encodings()
+# convert_token_to_text()
 make_embeddings()
-# with open('/Users/gjyotin305/Desktop/scripts/NLP-Workshop/testing/filter_encoded_padded_text.json', 'r') as f:
+# with open('encoded_tokens_w_data.json', 'r') as f:
 #     data_check = json.load(f)
 
-
-
 # convert_token_to_text()
-
-
 
 
 # check_max_len_encodings(data_check)
