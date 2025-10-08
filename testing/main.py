@@ -12,6 +12,7 @@ import plotly.express as px
 import tiktoken
 import json
 from tqdm import tqdm
+import plotly.graph_objects as go
 
 
 # dataset = load_dataset('Ishat/SentimentAnalysisRAID', split='train')
@@ -34,7 +35,6 @@ check = enc.encode(test_sample)
 print(enc.decode([check[1]]))
 # tests = enc.encode_batch([test_sample, test_sample])
 
-import plotly.graph_objects as go
 
 def visualize_decision_boundary_3d(model, X, y, title="3D Decision Boundary"):
     # Step 1: Dimensionality reduction
@@ -115,8 +115,9 @@ def encode_tokens(dataset):
 
     with open('encoded_tokens_w_data.json', 'w') as f:
         json.dump(dataset, f, indent=4)
-    
-    print(f'Done')
+
+    print('Done')
+
 
 def check_max_len_encodings(dataset):
     max_tokens = 0
@@ -129,7 +130,6 @@ def check_max_len_encodings(dataset):
         if len(x['tokens']) > 20 and len(x['tokens']) < 40:
             num_of_tokens += 1
             filter_json.append(x)
-    
 
     with open('filter_encodes.json', 'w') as f:
         json.dump(filter_json, f, indent=4)
@@ -159,10 +159,11 @@ def check_max_len_encodings(dataset):
 
     print(f'MAX TOKENS: {max_tokens} | MIN TOKENS: {min_tokens} | NUM_SENTENCES: {num_of_tokens}')
 
+
 def pad_encodings():
     with open('filter_encodes.json', 'r') as f:
         data_filter = json.load(f)
-    
+
     max_tokens = 39
     token = enc.encode('<|endoftext|>', allowed_special='all')[0]
 
@@ -174,6 +175,7 @@ def pad_encodings():
     with open('filter_encodes_padded.json', 'w') as f:
         json.dump(data_filter, f, indent=4)
 
+
 def convert_token_to_text():
     with open('filter_encodes_padded.json', 'r') as f:
         data = json.load(f)
@@ -184,13 +186,15 @@ def convert_token_to_text():
     with open('filter_encoded_padded_text.json', 'w') as f:
         json.dump(data, f, indent=4)
 
+
 def dummy(text):
     return text
+
 
 def make_embeddings():
     with open('filter_encoded_padded_text.json', 'r') as f:
         check = json.load(f)
-    
+
     sentiment_to_idx = {
         'Positive': 1,
         'Negative': 0
@@ -215,10 +219,14 @@ def make_embeddings():
         list_test_labels.append(x['sentiment'])
         list_test_labels_idx.append(sentiment_to_idx[x['sentiment']])
 
-    vectorizer = TfidfVectorizer(ngram_range=(3, 5), lowercase=False, sublinear_tf=True, analyzer = 'word',
-        tokenizer = dummy,
-        preprocessor = dummy,
-        token_pattern = None, strip_accents='unicode')
+    vectorizer = TfidfVectorizer(
+        ngram_range=(3, 5),
+        lowercase=False,
+        sublinear_tf=True,
+        analyzer='word',
+        tokenizer=dummy,
+        preprocessor=dummy,
+        token_pattern=None, strip_accents='unicode')
 
     tf_train = vectorizer.fit_transform(list_train_text)
     tf_test = vectorizer.transform(list_test_text)
@@ -243,9 +251,9 @@ def make_embeddings():
     labels = list(range(len(list_train_labels)))
 
     fig = px.scatter_3d(
-        x=X_tsne3d[:,0],
-        y=X_tsne3d[:,1],
-        z=X_tsne3d[:,2],
+        x=X_tsne3d[:, 0],
+        y=X_tsne3d[:, 1],
+        z=X_tsne3d[:, 2],
         color=labels,
         hover_name=list_train_labels,
         title="3D t-SNE of TF-IDF Vectors"
