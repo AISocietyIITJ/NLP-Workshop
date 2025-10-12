@@ -1,17 +1,10 @@
 from datasets import load_dataset
 from sklearn.feature_extraction.text import TfidfVectorizer
-from yellowbrick.text import TSNEVisualizer
 import numpy as np
-from sklearn.manifold import TSNE
-from sklearn.decomposition import TruncatedSVD
-import plotly.express as px
-# from tiktoken import 
+from tiktoken import get_encoding
 import scipy as sp
-import tiktoken
 import json
 from tqdm import tqdm
-import pandas as pd
-import pickle
 
 
 dataset = load_dataset('gjyotin305/NLPWorkshop', split='train')
@@ -23,7 +16,7 @@ with open("dataset.json", "r", encoding="utf-8") as f:
 
 print(len(data))
 
-# enc = tiktoken.get_encoding("o200k_base")
+enc = get_encoding("o200k_base")
 # assert enc.decode(enc.encode("hello world")) == "hello world"
 
 # To get the tokeniser corresponding to a specific model in the OpenAI API:
@@ -58,7 +51,7 @@ def check_max_len_encodings(dataset):
         min_tokens = min(len(x['tokens']), min_tokens)
         if len(x['tokens']) > 20 and len(x['tokens']) < 40:
             num_of_tokens += 1
-            filter_json.append(x)   
+            filter_json.append(x)
 
     with open('filter_encodes.json', 'w') as f:
         json.dump(filter_json, f, indent=4)
@@ -92,7 +85,7 @@ def check_max_len_encodings(dataset):
 def pad_encodings():
     with open('filter_encodes.json', 'r') as f:
         data_filter = json.load(f)
- 
+
     max_tokens = 39
     token = enc.encode('<|endoftext|>', allowed_special='all')[0]
 
@@ -129,7 +122,7 @@ def make_embeddings():
         'Positive': 1,
         'Negative': 0
     }
-    
+
     list_text = []
     list_labels = []
     for x in tqdm(check):
@@ -197,13 +190,14 @@ def make_embeddings():
     # fig.update_traces(marker=dict(size=5))
     # fig.show()
 
-
     # tsne.fit(tf_train, list_labels)
     # tsne.show()
 # encode_tokens(data)
 # check_max_len_encodings(data)
 # pad_encodings()
 # convert_token_to_text()
+
+
 make_embeddings()
 # with open('encoded_tokens_w_data.json', 'r') as f:
 #     data_check = json.load(f)

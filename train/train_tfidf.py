@@ -1,5 +1,3 @@
-import pandas as pd
-import numpy as np
 import optuna
 import json
 from sklearn.model_selection import train_test_split
@@ -9,14 +7,15 @@ from sklearn.ensemble import RandomForestClassifier
 from xgboost import XGBClassifier
 from sklearn.metrics import (
     accuracy_score,
-    confusion_matrix,
-    classification_report
 )
 from loguru import logger
+import scipy as sp
 
 logger.info("Starting the training script")
-x = pd.read_csv("final_data.csv")
-y = pd.read_csv("label_data_final.csv")
+
+x = sp.sparse.load_npz('/tmp/sparse_matrix.npz')
+y = sp.sparse.load_npz('/tmp/labels.npz').toarray().ravel()
+
 logger.success("Data loaded successfully")
 logger.info(f"Feature data shape: {x.shape}")
 logger.info(f"Label data shape: {y.shape}")
@@ -27,11 +26,11 @@ logger.info(f"Testing feature shape: {x_test.shape}")
 logger.info(f"Training label shape: {y_train.shape}")
 logger.info(f"Testing label shape: {y_test.shape}")
 
-model_name = "logistic_regression"
+model_name = "xgboost"
 logger.info(f"Selected model: {model_name}")
 
 
-def train_model(x_train, y_train):
+def train_model(x_train, y_train, **kwargs):
     logger.info(f"Training model: {model_name}")
     models = {
         "logistic_regression": LogisticRegression(),
@@ -97,6 +96,8 @@ study.optimize(objective, n_trials=25)
 
 with open(f"{model_name}_params.json", "w") as file:
     json.dump(study.best_params, file)
-
+logger.info(f"here is the study {study}")
 logger.success("Best parameters:", study.best_params)
 logger.success("Best accuracy:", study.best_value)
+
+##### load dataset from huggingface and use it.
